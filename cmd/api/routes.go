@@ -14,5 +14,6 @@ func (app *application) routes() http.Handler {
 	routes.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 
 	routes.HandlerFunc("GET", "/v1/health", app.healthCheckHandler)
+	routes.HandlerFunc("GET", "/v1/sessions/:session_public_id", app.getSessionHandler)
 	return routes
 }
