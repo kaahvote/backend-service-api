@@ -9,6 +9,10 @@ import (
 func (app *application) routes() http.Handler {
 
 	routes := httprouter.New()
+
+	routes.NotFound = http.HandlerFunc(app.notFoundResponse)
+	routes.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
+
 	routes.HandlerFunc("GET", "/v1/health", app.healthCheckHandler)
 	return routes
 }
