@@ -1,14 +1,12 @@
 package main
 
 import (
-	"encoding/json"
 	"net/http"
 )
 
 func (app *application) healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 
-	body := map[string]any{
-
+	body := envelope{
 		"status": "available",
 		"system_info": map[string]string{
 			"environment": app.config.env,
@@ -16,14 +14,8 @@ func (app *application) healthCheckHandler(w http.ResponseWriter, r *http.Reques
 		},
 	}
 
-	resp, err := json.Marshal(body)
-
+	err := app.writeJSON(w, http.StatusOK, body, nil)
 	if err != nil {
-		app.logger.Error(err.Error())
-		http.Error(w, "The server encountered an error, please try again later.", http.StatusInternalServerError)
+		app.serverErrorResponse(w, r, err)
 	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(resp)
 }
