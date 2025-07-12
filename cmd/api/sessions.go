@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -11,7 +13,7 @@ func (app *application) getSessionHandler(w http.ResponseWriter, r *http.Request
 
 	sessionPublicId := app.readStringParam(r, "session_public_id")
 
-	if len(sessionPublicId) == 0 {
+	if sessionPublicId == "" {
 		app.notFoundResponse(w, r)
 	}
 
@@ -31,4 +33,42 @@ func (app *application) getSessionHandler(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
+}
+
+func (app *application) postSessionHandler(w http.ResponseWriter, r *http.Request) {
+
+	var input struct {
+		Name               string        `json:"name"`
+		VotingPolicyID     int64         `json:"votingPolicyID"`
+		VotersPolicyID     int64         `json:"votersPolicyID"`
+		CandidatesPolicyID int64         `json:"candidatesPolicyID"`
+		CreatedBy          int64         `json:"createdBy"`
+		ExpiresAt          data.DateTime `json:"expiresAt"`
+	}
+
+	err := json.NewDecoder(r.Body).Decode(&input)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	expiresAt, err := input.ExpiresAt.ToTime()
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	session := data.Session{
+		Name:               input.Name,
+		PublicID:           "A9J3VJIIR32S",
+		CreatedAt:          time.Now(),
+		ExpiresAt:          expiresAt,
+		VotingPolicyID:     input.VotingPolicyID,
+		VotersPolicyID:     input.VotersPolicyID,
+		CandidatesPolicyID: input.CandidatesPolicyID,
+		CreatedBy:          input.CreatedBy,
+	}
+
+	fmt.Fprintf(w, "%+v\n", session)
+
 }
