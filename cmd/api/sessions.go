@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/kaahvote/backend-service-api/internal/data"
 )
 
@@ -58,9 +59,11 @@ func (app *application) postSessionHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	uid, _ := uuid.NewV7()
+
 	session := data.Session{
 		Name:               input.Name,
-		PublicID:           "A9J3VJIIR32S",
+		PublicID:           uid.String(),
 		CreatedAt:          time.Now(),
 		ExpiresAt:          expiresAt,
 		VotingPolicyID:     input.VotingPolicyID,
