@@ -1,0 +1,26 @@
+ALTER TABLE sessions 
+    DROP CONSTRAINT fk_voting_policies;
+ALTER TABLE sessions
+    DROP CONSTRAINT fk_voters_policy;
+ALTER TABLE sessions 
+    DROP CONSTRAINT fk_candidates_policy_id;
+ALTER TABLE sessions
+    DROP CONSTRAINT fk_create_user;
+ALTER TABLE candidates
+    DROP CONSTRAINT fk_session;
+ALTER TABLE candidates
+    DROP CONSTRAINT fk_user;
+ALTER TABLE voters
+    DROP CONSTRAINT fk_user;
+ALTER TABLE voters
+    DROP CONSTRAINT fk_session;
+ALTER TABLE votes
+    DROP CONSTRAINT fk_voter;
+ALTER TABLE votes
+    DROP CONSTRAINT fk_candidate;
+ALTER TABLE votes
+    DROP CONSTRAINT fk_session;
+ALTER TABLE flows
+    DROP CONSTRAINT fk_session;
+ALTER TABLE flows
+    DROP CONSTRAINT fk_state;
