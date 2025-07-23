@@ -60,7 +60,7 @@ func (app *application) postSessionHandler(w http.ResponseWriter, r *http.Reques
 
 	uid, _ := uuid.NewV7()
 
-	session := data.Session{
+	session := &data.Session{
 		Name:               input.Name,
 		PublicID:           uid.String(),
 		CreatedAt:          time.Now(),
@@ -71,6 +71,17 @@ func (app *application) postSessionHandler(w http.ResponseWriter, r *http.Reques
 		CreatedBy:          input.CreatedBy,
 	}
 
-	fmt.Fprintf(w, "%+v\n", session)
+	err = app.models.Sessions.Insert(session)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
 
+	headers := make(http.Header)
+	headers.Set("Location", fmt.Sprintf("/v1/sessions/%s", session.PublicID))
+
+	err = app.writeJSON(w, http.StatusCreated, envelope{"session": session}, headers)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 }
