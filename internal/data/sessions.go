@@ -5,6 +5,9 @@ import (
 	"database/sql"
 	"errors"
 	"time"
+	"unicode/utf8"
+
+	"github.com/kaahvote/backend-service-api/internal/validator"
 )
 
 const THREE_SECONDS = 3 * time.Second
@@ -19,6 +22,18 @@ type Session struct {
 	CandidatesPolicyID int64     `json:"candidatesPolicyId"`
 	CreatedBy          int64     `json:"createdBy"`
 	CreatedAt          time.Time `json:"createdAt"`
+}
+
+func ValidateSession(v *validator.Validator, s *Session) {
+	v.Check(s.Name != "", "name", "must be provided")
+	v.Check(utf8.RuneCountInString(s.Name) > 10, "name", "must at least 10 characters")
+
+	v.Check(s.VotingPolicyID > 0, "votingPolicyID", "must be a valid positive integer")
+	v.Check(s.VotersPolicyID > 0, "votersPolicyID", "must be a valid positive integer")
+	v.Check(s.CandidatesPolicyID > 0, "candidatesPolicyID", "must be a valid positive integer")
+	v.Check(s.CreatedBy > 0, "createdBy", "must be a valid positive integer")
+
+	//TODO: Validate the expiresAt field. It cannot be in the past.
 }
 
 type SessionModel struct {
