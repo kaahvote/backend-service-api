@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -17,19 +18,20 @@ func (app *application) getSessionHandler(w http.ResponseWriter, r *http.Request
 		app.notFoundResponse(w, r)
 	}
 
-	session := data.Session{
-		ID:                 1,
-		Name:               "Eleição do representante de turma - 2026",
-		PublicID:           sessionPublicId,
-		ExpiresAt:          time.Now(),
-		VotingPolicyID:     1,
-		VotersPolicyID:     1,
-		CandidatesPolicyID: 1,
-		CreatedBy:          1,
-		CreatedAt:          time.Now(),
+	session, err := app.models.Sessions.Get(sessionPublicId)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+			return
+		default:
+			app.serverErrorResponse(w, r, err)
+			return
+		}
 	}
 
-	err := app.writeJSON(w, http.StatusOK, envelope{"session": session}, nil)
+	err = app.writeJSON(w, http.StatusOK, envelope{"session": session}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
