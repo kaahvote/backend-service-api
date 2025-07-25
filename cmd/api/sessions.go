@@ -16,6 +16,7 @@ func (app *application) getSessionHandler(w http.ResponseWriter, r *http.Request
 
 	if sessionPublicId == "" {
 		app.notFoundResponse(w, r)
+		return
 	}
 
 	session, err := app.models.Sessions.Get(sessionPublicId)
