@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/kaahvote/backend-service-api/internal/data"
+	"github.com/kaahvote/backend-service-api/internal/validator"
 )
 
 func (app *application) getSessionHandler(w http.ResponseWriter, r *http.Request) {
@@ -57,7 +58,9 @@ func (app *application) postSessionHandler(w http.ResponseWriter, r *http.Reques
 
 	expiresAt, err := input.ExpiresAt.ToTime()
 	if err != nil {
-		app.badRequestResponse(w, r, err)
+		errors := make(map[string]string)
+		errors["expiresAt"] = err.Error()
+		app.failedValidationResponse(w, r, errors)
 		return
 	}
 
@@ -72,6 +75,13 @@ func (app *application) postSessionHandler(w http.ResponseWriter, r *http.Reques
 		VotersPolicyID:     input.VotersPolicyID,
 		CandidatesPolicyID: input.CandidatesPolicyID,
 		CreatedBy:          input.CreatedBy,
+	}
+
+	v := validator.New()
+
+	if data.ValidateSession(v, session); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
 	}
 
 	err = app.models.Sessions.Insert(session)
