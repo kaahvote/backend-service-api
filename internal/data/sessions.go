@@ -33,7 +33,7 @@ func ValidateSession(v *validator.Validator, s *Session) {
 	v.Check(s.CandidatesPolicyID > 0, "candidatesPolicyID", "must be a valid positive integer")
 	v.Check(s.CreatedBy > 0, "createdBy", "must be a valid positive integer")
 
-	//TODO: Validate the expiresAt field. It cannot be in the past.
+	v.Check(s.ExpiresAt.After(time.Now()), "expiresAt", "cannot be in the past")
 }
 
 type SessionModel struct {
