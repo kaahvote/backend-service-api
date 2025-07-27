@@ -102,3 +102,12 @@ func (m SessionModel) Update(s *Session) error {
 	_, err := m.DB.ExecContext(ctx, query, args...)
 	return err
 }
+
+func (m SessionModel) Delete(id int64) error {
+	query := `DELETE FROM sessions WHERE id = $1`
+
+	ctx, cancel := context.WithTimeout(context.Background(), THREE_SECONDS)
+	defer cancel()
+	_, err := m.DB.ExecContext(ctx, query, id)
+	return err
+}
