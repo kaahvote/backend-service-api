@@ -1,0 +1,2 @@
+ALTER TABLE sessions
+ALTER COLUMN public_id TYPE TEXT;
