@@ -43,9 +43,9 @@ func (app *application) postSessionHandler(w http.ResponseWriter, r *http.Reques
 
 	var input struct {
 		Name               string        `json:"name"`
-		VotingPolicyID     int64         `json:"votingPolicyID"`
-		VotersPolicyID     int64         `json:"votersPolicyID"`
-		CandidatesPolicyID int64         `json:"candidatesPolicyID"`
+		VotingPolicyID     int64         `json:"votingPolicyId"`
+		VotersPolicyID     int64         `json:"votersPolicyId"`
+		CandidatesPolicyID int64         `json:"candidatesPolicyId"`
 		CreatedBy          int64         `json:"createdBy"`
 		ExpiresAt          data.DateTime `json:"expiresAt"`
 	}
@@ -96,5 +96,87 @@ func (app *application) postSessionHandler(w http.ResponseWriter, r *http.Reques
 	err = app.writeJSON(w, http.StatusCreated, envelope{"session": session}, headers)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) updateSessionHandler(w http.ResponseWriter, r *http.Request) {
+
+	publicId := app.readStringParam(r, "session_public_id")
+	if publicId == "" {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	var input struct {
+		Name               *string        `json:"name"`
+		VotingPolicyID     *int64         `json:"votingPolicyId"`
+		VotersPolicyID     *int64         `json:"votersPolicyId"`
+		CandidatesPolicyID *int64         `json:"candidatesPolicyId"`
+		ExpiresAt          *data.DateTime `json:"expiresAt"`
+	}
+
+	err := app.readJSON(w, r, &input)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	session, err := app.models.Sessions.Get(publicId)
+	if err != nil {
+		switch err {
+		case data.ErrRecordNotFound:
+			app.notFoundResponse(w, r)
+			return
+		default:
+			app.badRequestResponse(w, r, err)
+			return
+		}
+	}
+
+	if input.Name != nil {
+		session.Name = *input.Name
+	}
+
+	if input.VotingPolicyID != nil {
+		session.VotingPolicyID = *input.VotingPolicyID
+	}
+
+	if input.VotersPolicyID != nil {
+		session.VotersPolicyID = *input.VotersPolicyID
+	}
+
+	if input.CandidatesPolicyID != nil {
+		session.CandidatesPolicyID = *input.CandidatesPolicyID
+	}
+
+	if input.ExpiresAt != nil {
+		dt, err := input.ExpiresAt.ToTime()
+		if err != nil {
+			errors := make(map[string]string)
+			errors["expiresAt"] = err.Error()
+			app.failedValidationResponse(w, r, errors)
+			return
+		}
+
+		session.ExpiresAt = dt
+	}
+
+	v := validator.New()
+
+	if data.ValidateSession(v, session); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	err = app.models.Sessions.Update(session)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"session": session}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
 	}
 }

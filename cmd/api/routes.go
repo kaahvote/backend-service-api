@@ -17,5 +17,7 @@ func (app *application) routes() http.Handler {
 	routes.HandlerFunc(http.MethodGet, "/v1/sessions/:session_public_id", app.getSessionHandler)
 	routes.HandlerFunc(http.MethodPost, "/v1/sessions", app.postSessionHandler)
 
+	routes.HandlerFunc(http.MethodPatch, "/v1/sessions/:session_public_id", app.updateSessionHandler)
+
 	return routes
 }
