@@ -88,3 +88,17 @@ func (m SessionModel) Insert(s *Session) error {
 
 	return m.DB.QueryRowContext(ctx, query, args...).Scan(&s.ID, &s.CreatedAt)
 }
+
+func (m SessionModel) Update(s *Session) error {
+	query := `UPDATE sessions SET 
+			name=$1, expires_at=$2, voting_policy_id=$3, voters_policy_id=$4, candidate_policy_id=$5
+			WHERE id = $6`
+
+	ctx, cancel := context.WithTimeout(context.Background(), THREE_SECONDS)
+
+	defer cancel()
+
+	args := []any{s.Name, s.ExpiresAt, s.VotingPolicyID, s.VotersPolicyID, s.CandidatesPolicyID, s.ID}
+	_, err := m.DB.ExecContext(ctx, query, args...)
+	return err
+}
