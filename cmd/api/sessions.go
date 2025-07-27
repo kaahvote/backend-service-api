@@ -180,3 +180,35 @@ func (app *application) updateSessionHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 }
+
+func (app *application) deleteSessionHandler(w http.ResponseWriter, r *http.Request) {
+	publicId := app.readStringParam(r, "session_public_id")
+	if publicId == "" {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	session, err := app.models.Sessions.Get(publicId)
+	if err != nil {
+		switch err {
+		case data.ErrRecordNotFound:
+			app.notFoundResponse(w, r)
+			return
+		default:
+			app.serverErrorResponse(w, r, err)
+			return
+		}
+	}
+
+	err = app.models.Sessions.Delete(session.ID)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusNoContent, nil, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+}
