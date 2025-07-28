@@ -43,7 +43,8 @@ func (m FlowModel) UpdateState(f *Flow) error {
 
 func (m FlowModel) GetCurrentState(sessionID int64) (*Flow, error) {
 	query := `SELECT id, session_id, state_id, comment, created_at 
-			  FROM flows WHERE session_id = $1`
+			  FROM flows WHERE session_id = $1
+			  ORDER BY created_at DESC LIMIT 1`
 
 	ctx, cancel := context.WithTimeout(context.Background(), THREE_SECONDS)
 
