@@ -10,8 +10,6 @@ import (
 	"github.com/kaahvote/backend-service-api/internal/validator"
 )
 
-const THREE_SECONDS = 3 * time.Second
-
 type Session struct {
 	ID                 int64     `json:"id"`
 	Name               string    `json:"name"`
