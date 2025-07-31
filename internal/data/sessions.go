@@ -10,8 +10,6 @@ import (
 	"github.com/kaahvote/backend-service-api/internal/validator"
 )
 
-const THREE_SECONDS = 3 * time.Second
-
 type Session struct {
 	ID                 int64     `json:"id"`
 	Name               string    `json:"name"`
@@ -76,17 +74,62 @@ func (m SessionModel) Get(publicId string) (*Session, error) {
 }
 
 func (m SessionModel) Insert(s *Session) error {
-	query := `INSERT INTO sessions (name, public_id, expires_at, voting_policy_id, voters_policy_id, candidate_policy_id, created_by) VALUES
-				($1, $2, $3, $4, $5, $6, $7) 
-				RETURNING id, created_at`
-
-	args := []any{s.Name, s.PublicID, s.ExpiresAt, s.VotingPolicyID, s.VotersPolicyID, s.CandidatesPolicyID, s.CreatedBy}
 
 	ctx, cancel := context.WithTimeout(context.Background(), THREE_SECONDS)
-
 	defer cancel()
 
-	return m.DB.QueryRowContext(ctx, query, args...).Scan(&s.ID, &s.CreatedAt)
+	txn, err := m.DB.Begin()
+	if err != nil {
+		return err
+	}
+
+	err = m.InsertSessionWithTransaction(ctx, txn, s)
+	if err != nil {
+		return err
+	}
+
+	err = m.InsertFirstSessionFlowWithTransaction(ctx, txn, s.ID)
+	if err != nil {
+		return err
+	}
+
+	return txn.Commit()
+}
+
+func (m SessionModel) InsertSessionWithTransaction(ctx context.Context, txn *sql.Tx, s *Session) error {
+	query := `INSERT INTO sessions (name, public_id, expires_at, voting_policy_id, voters_policy_id, candidate_policy_id, created_by) 
+				VALUES ($1, $2, $3, $4, $5, $6, $7) 
+				RETURNING id, created_at`
+
+	stmt, err := txn.PrepareContext(ctx, query)
+	if err != nil {
+		return err
+	}
+
+	args := []any{s.Name, s.PublicID, s.ExpiresAt, s.VotingPolicyID, s.VotersPolicyID, s.CandidatesPolicyID, s.CreatedBy}
+	err = stmt.QueryRowContext(ctx, args...).Scan(&s.ID, &s.CreatedAt)
+	if err != nil {
+		return err
+	}
+
+	return stmt.Close()
+}
+
+func (m SessionModel) InsertFirstSessionFlowWithTransaction(ctx context.Context, txn *sql.Tx, sessionId int64) error {
+	query := `INSERT INTO flows (session_id, state_id) VALUES ($1, $2)`
+
+	args := []any{sessionId, SESSION_IN_DRAFT}
+	stmt, err := txn.PrepareContext(ctx, query)
+	if err != nil {
+		return err
+	}
+
+	_, err = stmt.ExecContext(ctx, args...)
+	if err != nil {
+		return err
+	}
+
+	return stmt.Close()
 }
 
 func (m SessionModel) Update(s *Session) error {
