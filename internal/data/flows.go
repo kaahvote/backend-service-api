@@ -19,7 +19,7 @@ type FlowModel struct {
 }
 
 func (m FlowModel) Insert(f *Flow) error {
-	query := `INSERT INTO flows (session_id, state_id, comment) '
+	query := `INSERT INTO flows (session_id, state_id, comment)
 			  VALUES ($1, $2, $3)
 			  RETURNING id, created_at`
 	args := []any{f.SessionID, f.StateID, f.Comment}
@@ -29,6 +29,15 @@ func (m FlowModel) Insert(f *Flow) error {
 	defer cancel()
 
 	return m.DB.QueryRowContext(ctx, query, args...).Scan(&f.ID, &f.CreatedAt)
+}
+
+func (m FlowModel) InsertFirstFlow(sessionId int64) error {
+	flow := &Flow{
+		SessionID: sessionId,
+		StateID:   1,
+		Comment:   "",
+	}
+	return m.Insert(flow)
 }
 
 func (m FlowModel) UpdateState(f *Flow) error {
