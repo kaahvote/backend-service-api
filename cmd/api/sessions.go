@@ -90,6 +90,12 @@ func (app *application) postSessionHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	err = app.models.Flows.InsertFirstFlow(session.ID)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
 	headers := make(http.Header)
 	headers.Set("Location", fmt.Sprintf("/v1/sessions/%s", session.PublicID))
 
