@@ -8,18 +8,10 @@ import (
 
 func (app *application) postSessionFlowHandler(w http.ResponseWriter, r *http.Request) {
 
-	psi := app.readStringParam(r, "session_public_id")
-	s, err := app.models.Sessions.Get(psi)
-
+	s, err := app.getSession(r)
 	if err != nil {
-		switch err {
-		case data.ErrRecordNotFound:
-			app.notFoundResponse(w, r)
-			return
-		default:
-			app.serverErrorResponse(w, r, err)
-			return
-		}
+		app.handleErrToNotFound(w, r, err)
+		return
 	}
 
 	var input struct {
@@ -35,6 +27,18 @@ func (app *application) postSessionFlowHandler(w http.ResponseWriter, r *http.Re
 		Comment:   input.Comment,
 	}
 
+	currentFlow, err := app.models.Flows.GetCurrentState(flow.SessionID)
+	app.handleErrToNotFound(w, r, err)
+
+	if currentFlow.Equals(flow) {
+		err = app.writeJSON(w, http.StatusCreated, envelope{"flow": currentFlow}, nil)
+		if err != nil {
+			app.serverErrorResponse(w, r, err)
+			return
+		}
+		return
+	}
+
 	err = app.models.Flows.Insert(flow)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
@@ -42,6 +46,27 @@ func (app *application) postSessionFlowHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	err = app.writeJSON(w, http.StatusCreated, envelope{"flow": flow}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+}
+
+func (app *application) getSessionFlowHandler(w http.ResponseWriter, r *http.Request) {
+
+	session, err := app.getSession(r)
+	if err != nil {
+		app.handleErrToNotFound(w, r, err)
+		return
+	}
+
+	flows, err := app.models.Flows.GetFullHistory(session.ID)
+	if err != nil {
+		app.handleErrToNotFound(w, r, err)
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"flows": flows}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return

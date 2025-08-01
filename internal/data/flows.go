@@ -14,6 +14,11 @@ type Flow struct {
 	CreatedAt time.Time `json:"createdAt"`
 }
 
+func (f Flow) Equals(flow *Flow) bool {
+	return f.SessionID == flow.SessionID &&
+		f.StateID == flow.StateID
+}
+
 type FlowModel struct {
 	DB *sql.DB
 }
@@ -88,10 +93,15 @@ func (m FlowModel) GetFullHistory(sessionID int64) ([]*Flow, error) {
 	for rows.Next() {
 
 		var f Flow
+		var comment sql.NullString
 
-		err = rows.Scan(f.ID, f.SessionID, f.StateID, f.Comment, f.CreatedAt)
+		err = rows.Scan(&f.ID, &f.SessionID, &f.StateID, &comment, &f.CreatedAt)
 		if err != nil {
 			return nil, err
+		}
+
+		if comment.Valid {
+			f.Comment = comment.String
 		}
 
 		flows = append(flows, &f)

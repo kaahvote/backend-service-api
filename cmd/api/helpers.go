@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/kaahvote/backend-service-api/internal/data"
 )
 
 type envelope map[string]any
@@ -91,4 +92,16 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst any
 
 	return nil
 
+}
+
+func (app *application) handleErrToNotFound(w http.ResponseWriter, r *http.Request, err error) {
+
+	switch {
+	case errors.Is(err, data.ErrRecordNotFound):
+		app.notFoundResponse(w, r)
+		return
+	default:
+		app.serverErrorResponse(w, r, err)
+		return
+	}
 }
