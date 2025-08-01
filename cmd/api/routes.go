@@ -23,5 +23,7 @@ func (app *application) routes() http.Handler {
 	routes.HandlerFunc(http.MethodPost, "/v1/sessions/:session_public_id/flows", app.postSessionFlowHandler)
 	routes.HandlerFunc(http.MethodGet, "/v1/sessions/:session_public_id/flows", app.getSessionFlowHandler)
 
+	routes.HandlerFunc(http.MethodGet, "/v1/users/:user_public_id/sessions", app.getUserSessionsHandler)
+
 	return routes
 }
