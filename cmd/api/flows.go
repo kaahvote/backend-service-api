@@ -8,18 +8,10 @@ import (
 
 func (app *application) postSessionFlowHandler(w http.ResponseWriter, r *http.Request) {
 
-	psi := app.readStringParam(r, "session_public_id")
-	s, err := app.models.Sessions.Get(psi)
-
+	s, err := app.getSession(r)
 	if err != nil {
-		switch err {
-		case data.ErrRecordNotFound:
-			app.notFoundResponse(w, r)
-			return
-		default:
-			app.serverErrorResponse(w, r, err)
-			return
-		}
+		app.handleErrToNotFound(w, r, err)
+		return
 	}
 
 	var input struct {
@@ -33,6 +25,18 @@ func (app *application) postSessionFlowHandler(w http.ResponseWriter, r *http.Re
 		SessionID: s.ID,
 		StateID:   input.StateID,
 		Comment:   input.Comment,
+	}
+
+	currentFlow, err := app.models.Flows.GetCurrentState(flow.SessionID)
+	app.handleErrToNotFound(w, r, err)
+
+	if currentFlow.Equals(flow) {
+		err = app.writeJSON(w, http.StatusCreated, envelope{"flow": currentFlow}, nil)
+		if err != nil {
+			app.serverErrorResponse(w, r, err)
+			return
+		}
+		return
 	}
 
 	err = app.models.Flows.Insert(flow)
