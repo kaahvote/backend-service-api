@@ -93,10 +93,15 @@ func (m FlowModel) GetFullHistory(sessionID int64) ([]*Flow, error) {
 	for rows.Next() {
 
 		var f Flow
+		var comment sql.NullString
 
-		err = rows.Scan(f.ID, f.SessionID, f.StateID, f.Comment, f.CreatedAt)
+		err = rows.Scan(&f.ID, &f.SessionID, &f.StateID, &comment, &f.CreatedAt)
 		if err != nil {
 			return nil, err
+		}
+
+		if comment.Valid {
+			f.Comment = comment.String
 		}
 
 		flows = append(flows, &f)
