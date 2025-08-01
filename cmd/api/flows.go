@@ -51,3 +51,24 @@ func (app *application) postSessionFlowHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 }
+
+func (app *application) getSessionFlowHandler(w http.ResponseWriter, r *http.Request) {
+
+	session, err := app.getSession(r)
+	if err != nil {
+		app.handleErrToNotFound(w, r, err)
+		return
+	}
+
+	flows, err := app.models.Flows.GetFullHistory(session.ID)
+	if err != nil {
+		app.handleErrToNotFound(w, r, err)
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"flows": flows}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+}
