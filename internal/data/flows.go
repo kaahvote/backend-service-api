@@ -14,6 +14,11 @@ type Flow struct {
 	CreatedAt time.Time `json:"createdAt"`
 }
 
+func (f Flow) Equals(flow *Flow) bool {
+	return f.SessionID == flow.SessionID &&
+		f.StateID == flow.StateID
+}
+
 type FlowModel struct {
 	DB *sql.DB
 }
