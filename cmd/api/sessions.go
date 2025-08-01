@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -13,24 +12,10 @@ import (
 
 func (app *application) getSessionHandler(w http.ResponseWriter, r *http.Request) {
 
-	sessionPublicId := app.readStringParam(r, "session_public_id")
-
-	if sessionPublicId == "" {
-		app.notFoundResponse(w, r)
-		return
-	}
-
-	session, err := app.models.Sessions.Get(sessionPublicId)
-
+	session, err := app.getSession(r)
 	if err != nil {
-		switch {
-		case errors.Is(err, data.ErrRecordNotFound):
-			app.notFoundResponse(w, r)
-			return
-		default:
-			app.serverErrorResponse(w, r, err)
-			return
-		}
+		app.handleErrToNotFound(w, r, err)
+		return
 	}
 
 	err = app.writeJSON(w, http.StatusOK, envelope{"session": session}, nil)
@@ -101,9 +86,9 @@ func (app *application) postSessionHandler(w http.ResponseWriter, r *http.Reques
 
 func (app *application) updateSessionHandler(w http.ResponseWriter, r *http.Request) {
 
-	publicId := app.readStringParam(r, "session_public_id")
-	if publicId == "" {
-		app.notFoundResponse(w, r)
+	session, err := app.getSession(r)
+	if err != nil {
+		app.handleErrToNotFound(w, r, err)
 		return
 	}
 
@@ -115,22 +100,10 @@ func (app *application) updateSessionHandler(w http.ResponseWriter, r *http.Requ
 		ExpiresAt          *data.DateTime `json:"expiresAt"`
 	}
 
-	err := app.readJSON(w, r, &input)
+	err = app.readJSON(w, r, &input)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return
-	}
-
-	session, err := app.models.Sessions.Get(publicId)
-	if err != nil {
-		switch err {
-		case data.ErrRecordNotFound:
-			app.notFoundResponse(w, r)
-			return
-		default:
-			app.badRequestResponse(w, r, err)
-			return
-		}
 	}
 
 	if input.Name != nil {
@@ -182,22 +155,10 @@ func (app *application) updateSessionHandler(w http.ResponseWriter, r *http.Requ
 }
 
 func (app *application) deleteSessionHandler(w http.ResponseWriter, r *http.Request) {
-	publicId := app.readStringParam(r, "session_public_id")
-	if publicId == "" {
-		app.notFoundResponse(w, r)
-		return
-	}
-
-	session, err := app.models.Sessions.Get(publicId)
+	session, err := app.getSession(r)
 	if err != nil {
-		switch err {
-		case data.ErrRecordNotFound:
-			app.notFoundResponse(w, r)
-			return
-		default:
-			app.serverErrorResponse(w, r, err)
-			return
-		}
+		app.handleErrToNotFound(w, r, err)
+		return
 	}
 
 	err = app.models.Sessions.Delete(session.ID)
@@ -211,4 +172,21 @@ func (app *application) deleteSessionHandler(w http.ResponseWriter, r *http.Requ
 		app.serverErrorResponse(w, r, err)
 		return
 	}
+}
+
+func (app *application) getSession(r *http.Request) (*data.Session, error) {
+
+	sessionPublicId := app.readStringParam(r, "session_public_id")
+
+	if sessionPublicId == "" {
+		return nil, data.ErrRecordNotFound
+	}
+
+	session, err := app.models.Sessions.Get(sessionPublicId)
+	if err != nil {
+		return nil, err
+	}
+
+	return session, nil
+
 }
