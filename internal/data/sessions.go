@@ -155,9 +155,9 @@ func (m SessionModel) Delete(id int64) error {
 	return err
 }
 
-func (m SessionModel) ListSessionsFiltering(filters SessionFilters) ([]*Session, error) {
+func (m SessionModel) ListSessionsFiltering(filters SessionFilters) ([]*Session, Metadata, error) {
 
-	query := `SELECT id, name, public_id, expires_at, voting_policy_id, voters_policy_id,
+	query := `SELECT count(*) OVER(), id, name, public_id, expires_at, voting_policy_id, voters_policy_id,
 	  candidate_policy_id, created_by, created_at
 	  FROM sessions
 	  WHERE created_by=$1 
@@ -188,22 +188,25 @@ func (m SessionModel) ListSessionsFiltering(filters SessionFilters) ([]*Session,
 
 	rows, err := m.DB.QueryContext(ctx, query, args...)
 	if err != nil {
-		return nil, err
+		return nil, Metadata{}, err
 	}
 
+	totalRecords := 0
 	sessions := make([]*Session, 0)
 	defer rows.Close()
 
 	for rows.Next() {
 		var s Session
 
-		err = rows.Scan(&s.ID, &s.Name, &s.PublicID, &s.ExpiresAt, &s.VotingPolicyID, &s.VotersPolicyID, &s.CandidatesPolicyID, &s.CreatedBy, &s.CreatedAt)
+		err = rows.Scan(&totalRecords, &s.ID, &s.Name, &s.PublicID, &s.ExpiresAt, &s.VotingPolicyID, &s.VotersPolicyID, &s.CandidatesPolicyID, &s.CreatedBy, &s.CreatedAt)
 		if err != nil {
-			return nil, err
+			return nil, Metadata{}, err
 		}
 
 		sessions = append(sessions, &s)
 	}
 
-	return sessions, nil
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+
+	return sessions, metadata, nil
 }
