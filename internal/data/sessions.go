@@ -205,3 +205,56 @@ func (m SessionModel) ListSessionsByUserID(userID int64) ([]*Session, error) {
 	return sessions, nil
 
 }
+
+func (m SessionModel) ListSessionsFiltering(userID, votingPolicyID, votersPolicyID, candidatePolicyID int64, name string, expFrom, expTo, crtdFrom, crtdTo *string) ([]*Session, error) {
+
+	query := `SELECT id, name, public_id, expires_at, voting_policy_id, voters_policy_id,
+	  candidate_policy_id, created_by, created_at
+	  FROM sessions
+	  WHERE created_by=$1 
+	  AND (to_tsvector('simple', name) @@ plainto_tsquery('simple', $2) OR $2='')
+	  AND (voting_policy_id = $3 OR $3 = 0)
+	  AND (voters_policy_id = $4 OR $4 = 0)
+	  AND (candidate_policy_id = $5 OR $5 = 0)
+	  AND (expires_at >= $6 OR $6 IS NULL)
+	  AND (expires_at <= $7 OR $7 IS NULL)
+	  AND (created_at >= $8 OR $8 IS NULL)
+	  AND (created_at <= $9 OR $9 IS NULL)
+	  ORDER BY id ASC`
+
+	args := []any{
+		userID,
+		name,
+		votingPolicyID,
+		votersPolicyID,
+		candidatePolicyID,
+		expFrom,
+		expTo,
+		crtdFrom,
+		crtdTo,
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), THREE_SECONDS)
+	defer cancel()
+
+	rows, err := m.DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	sessions := make([]*Session, 0)
+	defer rows.Close()
+
+	for rows.Next() {
+		var s Session
+
+		err = rows.Scan(&s.ID, &s.Name, &s.PublicID, &s.ExpiresAt, &s.VotingPolicyID, &s.VotersPolicyID, &s.CandidatesPolicyID, &s.CreatedBy, &s.CreatedAt)
+		if err != nil {
+			return nil, err
+		}
+
+		sessions = append(sessions, &s)
+	}
+
+	return sessions, nil
+}
