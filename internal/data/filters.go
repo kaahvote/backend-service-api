@@ -1,5 +1,13 @@
 package data
 
+type Metadata struct {
+	CurrentPage  int `json:"currentPage"`
+	PageSize     int `json:"pageSize"`
+	FirstPage    int `json:"firstPage"`
+	LastPage     int `json:"lastPage"`
+	TotalRecords int `json:"totalRecords"`
+}
+
 type Filters struct {
 	Page         int
 	PageSize     int
@@ -18,4 +26,22 @@ type SessionFilters struct {
 	CreatedAtFrom     *string
 	CreatedAtTo       *string
 	Filters
+}
+
+func calculateMetadata(totalRecords, page, pageSize int) Metadata {
+	if totalRecords == 0 {
+		return Metadata{}
+	}
+
+	if pageSize == 0 {
+		return Metadata{}
+	}
+
+	return Metadata{
+		CurrentPage:  page,
+		PageSize:     pageSize,
+		FirstPage:    1,
+		LastPage:     (totalRecords + pageSize) / pageSize,
+		TotalRecords: totalRecords,
+	}
 }
