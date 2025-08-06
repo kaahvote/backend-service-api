@@ -155,7 +155,7 @@ func (m SessionModel) Delete(id int64) error {
 	return err
 }
 
-func (m SessionModel) ListSessionsFiltering(userID, votingPolicyID, votersPolicyID, candidatePolicyID int64, name string, expFrom, expTo, crtdFrom, crtdTo *string) ([]*Session, error) {
+func (m SessionModel) ListSessionsFiltering(filters SessionFilters) ([]*Session, error) {
 
 	query := `SELECT id, name, public_id, expires_at, voting_policy_id, voters_policy_id,
 	  candidate_policy_id, created_by, created_at
@@ -172,15 +172,15 @@ func (m SessionModel) ListSessionsFiltering(userID, votingPolicyID, votersPolicy
 	  ORDER BY id ASC`
 
 	args := []any{
-		userID,
-		name,
-		votingPolicyID,
-		votersPolicyID,
-		candidatePolicyID,
-		expFrom,
-		expTo,
-		crtdFrom,
-		crtdTo,
+		filters.CreatedBy,
+		filters.Name,
+		filters.VotingPolicyID,
+		filters.VotersPolicyID,
+		filters.CandidatePolicyID,
+		filters.ExpiresAtFrom,
+		filters.ExpiresAtTo,
+		filters.CreatedAtFrom,
+		filters.CreatedAtTo,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), THREE_SECONDS)

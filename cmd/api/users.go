@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 
+	"github.com/kaahvote/backend-service-api/internal/data"
 	"github.com/kaahvote/backend-service-api/internal/validator"
 )
 
@@ -38,7 +39,19 @@ func (app *application) getUserSessionsHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	sessions, err := app.models.Sessions.ListSessionsFiltering(user.ID, votingPolicyID, votersPolicyID, candidatePolicyID, name, expFrom, expTo, crtdFrom, crtdTo)
+	filters := data.SessionFilters{
+		Name:              name,
+		VotingPolicyID:    votingPolicyID,
+		VotersPolicyID:    votersPolicyID,
+		CandidatePolicyID: candidatePolicyID,
+		CreatedBy:         user.ID,
+		CreatedAtFrom:     crtdFrom,
+		CreatedAtTo:       crtdTo,
+		ExpiresAtFrom:     expFrom,
+		ExpiresAtTo:       expTo,
+	}
+
+	sessions, err := app.models.Sessions.ListSessionsFiltering(filters)
 	if err != nil {
 		app.handleErrToNotFound(w, r, err)
 		return
