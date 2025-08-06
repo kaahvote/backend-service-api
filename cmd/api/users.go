@@ -34,6 +34,9 @@ func (app *application) getUserSessionsHandler(w http.ResponseWriter, r *http.Re
 	votersPolicyID := int64(app.readInt(qs, "votersPolicy", 0, v))
 	candidatePolicyID := int64(app.readInt(qs, "candidatePolicy", 0, v))
 
+	pageSize := app.readInt(qs, "pageSize", 0, v)
+	currentPage := app.readInt(qs, "currentPage", 0, v)
+
 	if !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
 		return
@@ -49,15 +52,19 @@ func (app *application) getUserSessionsHandler(w http.ResponseWriter, r *http.Re
 		CreatedAtTo:       crtdTo,
 		ExpiresAtFrom:     expFrom,
 		ExpiresAtTo:       expTo,
+		Filters: data.Filters{
+			Page:     currentPage,
+			PageSize: pageSize,
+		},
 	}
 
-	sessions, err := app.models.Sessions.ListSessionsFiltering(filters)
+	sessions, metadata, err := app.models.Sessions.ListSessionsFiltering(filters)
 	if err != nil {
 		app.handleErrToNotFound(w, r, err)
 		return
 	}
 
-	err = app.writeJSON(w, http.StatusOK, envelope{"sessions": sessions}, nil)
+	err = app.writeJSON(w, http.StatusOK, envelope{"metadata": metadata, "sessions": sessions}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
