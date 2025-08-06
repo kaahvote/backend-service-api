@@ -155,57 +155,6 @@ func (m SessionModel) Delete(id int64) error {
 	return err
 }
 
-func (m SessionModel) ListSessionsByUserID(userID int64) ([]*Session, error) {
-	query := `SELECT id, name, public_id, expires_at, 
-				voting_policy_id, voters_policy_id, candidate_policy_id, 
-				created_by, created_at 
-			FROM sessions
-			WHERE created_by = $1`
-
-	ctx, cancel := context.WithTimeout(context.Background(), THREE_SECONDS)
-	defer cancel()
-
-	args := []any{userID}
-	rows, err := m.DB.QueryContext(ctx, query, args...)
-
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrRecordNotFound
-		} else {
-			return nil, err
-		}
-	}
-
-	var sessions []*Session
-	defer rows.Close()
-
-	for rows.Next() {
-
-		var session Session
-
-		err := rows.Scan(
-			&session.ID,
-			&session.Name,
-			&session.PublicID,
-			&session.ExpiresAt,
-			&session.VotingPolicyID,
-			&session.VotersPolicyID,
-			&session.CandidatesPolicyID,
-			&session.CreatedBy,
-			&session.CreatedAt,
-		)
-
-		if err != nil {
-			return nil, err
-		}
-
-		sessions = append(sessions, &session)
-	}
-
-	return sessions, nil
-
-}
-
 func (m SessionModel) ListSessionsFiltering(userID, votingPolicyID, votersPolicyID, candidatePolicyID int64, name string, expFrom, expTo, crtdFrom, crtdTo *string) ([]*Session, error) {
 
 	query := `SELECT id, name, public_id, expires_at, voting_policy_id, voters_policy_id,
