@@ -3,15 +3,18 @@ package data
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
 )
 
 type Flow struct {
-	ID        int64     `json:"id"`
-	SessionID int64     `json:"sessionId"`
-	StateID   int64     `json:"stateId"`
-	Comment   string    `json:"comment"`
-	CreatedAt time.Time `json:"createdAt"`
+	ID              int64     `json:"id"`
+	SessionID       int64     `json:"-"`
+	SessionPublicID string    `json:"sessionId"`
+	StateID         int64     `json:"stateId"`
+	StateName       string    `json:"stateName"`
+	Comment         string    `json:"comment"`
+	CreatedAt       time.Time `json:"createdAt"`
 }
 
 func (f Flow) Equals(flow *Flow) bool {
@@ -74,30 +77,40 @@ func (m FlowModel) GetCurrentState(sessionID int64) (*Flow, error) {
 	return &f, nil
 }
 
-func (m FlowModel) GetFullHistory(sessionID int64) ([]*Flow, error) {
-	query := `SELECT id, session_id, state_id, comment, created_at FROM flows
-				WHERE session_id=$1`
+func (m FlowModel) GetFullHistory(filters FlowFilters) ([]*Flow, Metadata, error) {
+	query := fmt.Sprintf(`SELECT COUNT(*) OVER(), 
+							s.public_id, f.id, f.session_id, f.state_id, ss.name, f.comment, f.created_at 
+						FROM flows f
+						INNER JOIN sessions s ON s.id = f.session_id
+						INNER JOIN session_states ss ON f.state_id = ss.id
+			  			WHERE 1=1 
+			  			AND f.session_id=$1
+			  			ORDER BY f.%s %s, f.id ASC
+			  			LIMIT $2 OFFSET $3`, filters.sortColumn(), filters.sortDirection())
+
+	args := []any{filters.SessionID, filters.limit(), filters.offset()}
 
 	ctx, cancel := context.WithTimeout(context.Background(), THREE_SECONDS)
-
 	defer cancel()
-	rows, err := m.DB.QueryContext(ctx, query, sessionID)
+
+	rows, err := m.DB.QueryContext(ctx, query, args...)
 
 	if err != nil {
-		return nil, err
+		return nil, Metadata{}, err
 	}
 
 	defer rows.Close()
 
+	totalRecords := 0
 	var flows []*Flow
 	for rows.Next() {
 
 		var f Flow
 		var comment sql.NullString
 
-		err = rows.Scan(&f.ID, &f.SessionID, &f.StateID, &comment, &f.CreatedAt)
+		err = rows.Scan(&totalRecords, &f.SessionPublicID, &f.ID, &f.SessionID, &f.StateID, &f.StateName, &comment, &f.CreatedAt)
 		if err != nil {
-			return nil, err
+			return nil, Metadata{}, err
 		}
 
 		if comment.Valid {
@@ -107,5 +120,7 @@ func (m FlowModel) GetFullHistory(sessionID int64) ([]*Flow, error) {
 		flows = append(flows, &f)
 	}
 
-	return flows, nil
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+
+	return flows, metadata, nil
 }
