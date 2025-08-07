@@ -169,7 +169,8 @@ func (m SessionModel) ListSessionsFiltering(filters SessionFilters) ([]*Session,
 	  AND (expires_at <= $7 OR $7 IS NULL)
 	  AND (created_at >= $8 OR $8 IS NULL)
 	  AND (created_at <= $9 OR $9 IS NULL)
-	  ORDER BY id ASC`
+	  ORDER BY id ASC
+	  LIMIT $10 OFFSET $11`
 
 	args := []any{
 		filters.CreatedBy,
@@ -181,6 +182,8 @@ func (m SessionModel) ListSessionsFiltering(filters SessionFilters) ([]*Session,
 		filters.ExpiresAtTo,
 		filters.CreatedAtFrom,
 		filters.CreatedAtTo,
+		filters.limit(),
+		filters.offset(),
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), THREE_SECONDS)

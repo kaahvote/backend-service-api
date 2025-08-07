@@ -41,7 +41,15 @@ func calculateMetadata(totalRecords, page, pageSize int) Metadata {
 		CurrentPage:  page,
 		PageSize:     pageSize,
 		FirstPage:    1,
-		LastPage:     (totalRecords + pageSize) / pageSize,
+		LastPage:     (totalRecords + pageSize - 1) / pageSize,
 		TotalRecords: totalRecords,
 	}
+}
+
+func (f Filters) limit() int {
+	return f.PageSize
+}
+
+func (f Filters) offset() int {
+	return (f.Page - 1) * f.PageSize
 }
