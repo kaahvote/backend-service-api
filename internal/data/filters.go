@@ -20,6 +20,11 @@ type Filters struct {
 	SortSafeList []string
 }
 
+type FlowFilters struct {
+	SessionID int64
+	Filters
+}
+
 type SessionFilters struct {
 	Name              string
 	VotingPolicyID    int64
@@ -79,6 +84,14 @@ func (f Filters) sortColumn() string {
 		}
 	}
 	panic("unsafe sort parameter: " + f.Sort)
+}
+
+func (f FlowFilters) sortColumn() string {
+	col := f.Filters.sortColumn()
+	if col == "state" {
+		return "state_id"
+	}
+	return col
 }
 
 func HasUpperCase(s string) (bool, string) {
