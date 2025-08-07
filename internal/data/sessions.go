@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 	"unicode/utf8"
 
@@ -155,53 +156,61 @@ func (m SessionModel) Delete(id int64) error {
 	return err
 }
 
-func (m SessionModel) ListSessionsByUserID(userID int64) ([]*Session, error) {
-	query := `SELECT id, name, public_id, expires_at, 
-				voting_policy_id, voters_policy_id, candidate_policy_id, 
-				created_by, created_at 
-			FROM sessions
-			WHERE created_by = $1`
+func (m SessionModel) ListSessionsFiltering(filters SessionFilters) ([]*Session, Metadata, error) {
+
+	query := fmt.Sprintf(`SELECT count(*) OVER(), id, name, public_id, expires_at, voting_policy_id, voters_policy_id,
+	  candidate_policy_id, created_by, created_at
+	  FROM sessions
+	  WHERE created_by=$1 
+	  AND (to_tsvector('simple', name) @@ plainto_tsquery('simple', $2) OR $2='')
+	  AND (voting_policy_id = $3 OR $3 = 0)
+	  AND (voters_policy_id = $4 OR $4 = 0)
+	  AND (candidate_policy_id = $5 OR $5 = 0)
+	  AND (expires_at >= $6 OR $6 IS NULL)
+	  AND (expires_at <= $7 OR $7 IS NULL)
+	  AND (created_at >= $8 OR $8 IS NULL)
+	  AND (created_at <= $9 OR $9 IS NULL)
+	  ORDER BY %s %s, id ASC
+	  LIMIT $10 OFFSET $11`, filters.sortColumn(), filters.sortDirection())
+
+	args := []any{
+		filters.CreatedBy,
+		filters.Name,
+		filters.VotingPolicyID,
+		filters.VotersPolicyID,
+		filters.CandidatePolicyID,
+		filters.ExpiresAtFrom,
+		filters.ExpiresAtTo,
+		filters.CreatedAtFrom,
+		filters.CreatedAtTo,
+		filters.limit(),
+		filters.offset(),
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), THREE_SECONDS)
 	defer cancel()
 
-	args := []any{userID}
 	rows, err := m.DB.QueryContext(ctx, query, args...)
-
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrRecordNotFound
-		} else {
-			return nil, err
-		}
+		return nil, Metadata{}, err
 	}
 
-	var sessions []*Session
+	totalRecords := 0
+	sessions := make([]*Session, 0)
 	defer rows.Close()
 
 	for rows.Next() {
+		var s Session
 
-		var session Session
-
-		err := rows.Scan(
-			&session.ID,
-			&session.Name,
-			&session.PublicID,
-			&session.ExpiresAt,
-			&session.VotingPolicyID,
-			&session.VotersPolicyID,
-			&session.CandidatesPolicyID,
-			&session.CreatedBy,
-			&session.CreatedAt,
-		)
-
+		err = rows.Scan(&totalRecords, &s.ID, &s.Name, &s.PublicID, &s.ExpiresAt, &s.VotingPolicyID, &s.VotersPolicyID, &s.CandidatesPolicyID, &s.CreatedBy, &s.CreatedAt)
 		if err != nil {
-			return nil, err
+			return nil, Metadata{}, err
 		}
 
-		sessions = append(sessions, &session)
+		sessions = append(sessions, &s)
 	}
 
-	return sessions, nil
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
 
+	return sessions, metadata, nil
 }
