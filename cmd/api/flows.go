@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/kaahvote/backend-service-api/internal/data"
+	"github.com/kaahvote/backend-service-api/internal/validator"
 )
 
 func (app *application) postSessionFlowHandler(w http.ResponseWriter, r *http.Request) {
@@ -60,13 +61,35 @@ func (app *application) getSessionFlowHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	flows, err := app.models.Flows.GetFullHistory(session.ID)
+	qs := r.URL.Query()
+	v := validator.New()
+
+	page := app.readInt(qs, "currentPage", 1, v)
+	pageSize := app.readInt(qs, "pageSize", 5, v)
+	sort := app.readString(qs, "sort", "createdAt")
+
+	if !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	filters := data.FlowFilters{
+		SessionID: session.ID,
+		Filters: data.Filters{
+			Page:         page,
+			PageSize:     pageSize,
+			SortSafeList: []string{"state", "-state", "createdAt", "-createdAt"},
+			Sort:         sort,
+		},
+	}
+
+	flows, metadata, err := app.models.Flows.GetFullHistory(filters)
 	if err != nil {
 		app.handleErrToNotFound(w, r, err)
 		return
 	}
 
-	err = app.writeJSON(w, http.StatusOK, envelope{"flows": flows}, nil)
+	err = app.writeJSON(w, http.StatusOK, envelope{"metadata": metadata, "flows": flows}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
