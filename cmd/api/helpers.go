@@ -6,10 +6,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/kaahvote/backend-service-api/internal/data"
+	"github.com/kaahvote/backend-service-api/internal/validator"
 )
 
 type envelope map[string]any
@@ -104,4 +107,41 @@ func (app *application) handleErrToNotFound(w http.ResponseWriter, r *http.Reque
 		app.serverErrorResponse(w, r, err)
 		return
 	}
+}
+
+func (app *application) readString(qs url.Values, key string, defaultValue string) string {
+	value := qs.Get(key)
+	if value == "" {
+		return defaultValue
+	}
+	return value
+}
+
+func (app *application) readDate(qs url.Values, key string) *string {
+	value := qs.Get(key)
+	if value == "" {
+		return nil
+	}
+	return &value
+}
+
+func (app *application) readInt(qs url.Values, key string, defaultValue int, v *validator.Validator) int {
+	value := qs.Get(key)
+
+	if value == "" {
+		return defaultValue
+	}
+
+	i, err := strconv.Atoi(value)
+	if err != nil {
+		v.AddError(key, "must be a positive integer")
+		return defaultValue
+	}
+
+	if i < 0 {
+		v.AddError(key, "must be a positive integer")
+		return defaultValue
+	}
+
+	return i
 }
