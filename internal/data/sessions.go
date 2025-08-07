@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 	"unicode/utf8"
 
@@ -157,7 +158,7 @@ func (m SessionModel) Delete(id int64) error {
 
 func (m SessionModel) ListSessionsFiltering(filters SessionFilters) ([]*Session, Metadata, error) {
 
-	query := `SELECT count(*) OVER(), id, name, public_id, expires_at, voting_policy_id, voters_policy_id,
+	query := fmt.Sprintf(`SELECT count(*) OVER(), id, name, public_id, expires_at, voting_policy_id, voters_policy_id,
 	  candidate_policy_id, created_by, created_at
 	  FROM sessions
 	  WHERE created_by=$1 
@@ -169,8 +170,8 @@ func (m SessionModel) ListSessionsFiltering(filters SessionFilters) ([]*Session,
 	  AND (expires_at <= $7 OR $7 IS NULL)
 	  AND (created_at >= $8 OR $8 IS NULL)
 	  AND (created_at <= $9 OR $9 IS NULL)
-	  ORDER BY id ASC
-	  LIMIT $10 OFFSET $11`
+	  ORDER BY %s %s, id ASC
+	  LIMIT $10 OFFSET $11`, filters.sortColumn(), filters.sortDirection())
 
 	args := []any{
 		filters.CreatedBy,
