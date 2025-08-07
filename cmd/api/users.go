@@ -34,8 +34,8 @@ func (app *application) getUserSessionsHandler(w http.ResponseWriter, r *http.Re
 	votersPolicyID := int64(app.readInt(qs, "votersPolicy", 0, v))
 	candidatePolicyID := int64(app.readInt(qs, "candidatePolicy", 0, v))
 
-	pageSize := app.readInt(qs, "pageSize", 0, v)
-	currentPage := app.readInt(qs, "currentPage", 0, v)
+	pageSize := app.readInt(qs, "pageSize", 1, v)
+	currentPage := app.readInt(qs, "currentPage", 5, v)
 	sort := app.readString(qs, "sort", "createdAt")
 
 	if !v.Valid() {
