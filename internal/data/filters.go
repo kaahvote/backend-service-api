@@ -1,5 +1,10 @@
 package data
 
+import (
+	"strings"
+	"unicode"
+)
+
 type Metadata struct {
 	CurrentPage  int `json:"currentPage"`
 	PageSize     int `json:"pageSize"`
@@ -52,4 +57,35 @@ func (f Filters) limit() int {
 
 func (f Filters) offset() int {
 	return (f.Page - 1) * f.PageSize
+}
+
+func (f Filters) sortDirection() string {
+	if strings.HasPrefix(f.Sort, "-") {
+		return "DESC"
+	}
+	return "ASC"
+}
+
+func (f Filters) sortColumn() string {
+	for _, saveValue := range f.SortSafeList {
+		if f.Sort == saveValue {
+			col := strings.TrimPrefix(f.Sort, "-")
+			hasUpper, char := HasUpperCase(col)
+			if hasUpper {
+				newChar := "_" + strings.ToLower(char)
+				return strings.ReplaceAll(col, char, newChar)
+			}
+			return col
+		}
+	}
+	panic("unsafe sort parameter: " + f.Sort)
+}
+
+func HasUpperCase(s string) (bool, string) {
+	for _, r := range s {
+		if unicode.IsUpper(r) {
+			return true, string(r)
+		}
+	}
+	return false, ""
 }

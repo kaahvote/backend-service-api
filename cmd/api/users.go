@@ -36,6 +36,7 @@ func (app *application) getUserSessionsHandler(w http.ResponseWriter, r *http.Re
 
 	pageSize := app.readInt(qs, "pageSize", 0, v)
 	currentPage := app.readInt(qs, "currentPage", 0, v)
+	sort := app.readString(qs, "sort", "createdAt")
 
 	if !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
@@ -53,8 +54,10 @@ func (app *application) getUserSessionsHandler(w http.ResponseWriter, r *http.Re
 		ExpiresAtFrom:     expFrom,
 		ExpiresAtTo:       expTo,
 		Filters: data.Filters{
-			Page:     currentPage,
-			PageSize: pageSize,
+			Page:         currentPage,
+			PageSize:     pageSize,
+			Sort:         sort,
+			SortSafeList: []string{"name", "createdAt", "expiresAt", "-name", "-createdAt", "-expiresAt"},
 		},
 	}
 
