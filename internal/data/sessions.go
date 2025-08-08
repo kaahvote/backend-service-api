@@ -28,6 +28,7 @@ type SessionFullDetail struct {
 	VotingPolicy    VotingPolicy    `json:"votingPolicy"`
 	VoterPolicy     VoterPolicy     `json:"voterPolicy"`
 	CandidatePolicy CandidatePolicy `json:"candidatePolicy"`
+	CurrentFlow     FlowDetail      `json:"currentFlow"`
 }
 
 func ValidateSession(v *validator.Validator, s *Session) {

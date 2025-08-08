@@ -24,6 +24,14 @@ func (app *application) getSessionHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	state, err := app.models.Flows.GetCurrentFlow(session.ID)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	session.CurrentFlow = *state
+
 	err = app.writeJSON(w, http.StatusOK, envelope{"session": session}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
