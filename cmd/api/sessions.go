@@ -12,9 +12,15 @@ import (
 
 func (app *application) getSessionHandler(w http.ResponseWriter, r *http.Request) {
 
-	session, err := app.getSession(r)
+	sessionPublicId := app.readStringParam(r, "session_public_id")
+	if sessionPublicId == "" {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	session, err := app.models.Sessions.GetFullDetail(sessionPublicId)
 	if err != nil {
-		app.handleErrToNotFound(w, r, err)
+		app.serverErrorResponse(w, r, err)
 		return
 	}
 
