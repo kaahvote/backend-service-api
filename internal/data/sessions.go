@@ -16,11 +16,19 @@ type Session struct {
 	Name               string    `json:"name"`
 	PublicID           string    `json:"publicId"`
 	ExpiresAt          time.Time `json:"expiresAt"`
-	VotingPolicyID     int64     `json:"votingPolicyId"`
-	VotersPolicyID     int64     `json:"votersPolicyId"`
-	CandidatesPolicyID int64     `json:"candidatesPolicyId"`
+	VotingPolicyID     int64     `json:"votingPolicyId,omitzero"`
+	VotersPolicyID     int64     `json:"votersPolicyId,omitzero"`
+	CandidatesPolicyID int64     `json:"candidatesPolicyId,omitzero"`
 	CreatedBy          int64     `json:"createdBy"`
 	CreatedAt          time.Time `json:"createdAt"`
+}
+
+type SessionFullDetail struct {
+	Session
+	VotingPolicy    VotingPolicy    `json:"votingPolicy"`
+	VoterPolicy     VoterPolicy     `json:"voterPolicy"`
+	CandidatePolicy CandidatePolicy `json:"candidatePolicy"`
+	CurrentFlow     FlowDetail      `json:"currentFlow"`
 }
 
 func ValidateSession(v *validator.Validator, s *Session) {
@@ -69,6 +77,54 @@ func (m SessionModel) Get(publicId string) (*Session, error) {
 		default:
 			return nil, err
 		}
+	}
+
+	return &s, nil
+}
+
+func (m SessionModel) GetFullDetail(publicId string) (*SessionFullDetail, error) {
+	query := `SELECT s.id, s.name, s.public_id, s.expires_at,
+				vp.id, vp.name, vp.created_at, 
+				v.id, v.name, v.created_at, 
+				c.id, c.name, c.created_at,
+				s.created_by, s.created_at
+			FROM
+				sessions s
+			INNER JOIN voting_policies vp ON vp.id = s.voting_policy_id
+			INNER JOIN voter_policies v ON v.id = s.voters_policy_id
+			INNER JOIN candidate_policies c ON c.id = s.candidate_policy_id
+			WHERE s.public_id = $1
+			ORDER BY s.ID ASC`
+
+	ctx, cancel := context.WithTimeout(context.Background(), THREE_SECONDS)
+	defer cancel()
+
+	var s SessionFullDetail
+	row := m.DB.QueryRowContext(ctx, query, publicId)
+	err := row.Scan(
+		&s.ID,
+		&s.Name,
+		&s.PublicID,
+		&s.ExpiresAt,
+
+		&s.VotingPolicy.ID,
+		&s.VotingPolicy.Name,
+		&s.VotingPolicy.CreatedAt,
+
+		&s.VoterPolicy.ID,
+		&s.VoterPolicy.Name,
+		&s.VoterPolicy.CreatedAt,
+
+		&s.CandidatePolicy.ID,
+		&s.CandidatePolicy.Name,
+		&s.CandidatePolicy.CreatedAt,
+
+		&s.CreatedBy,
+		&s.CreatedAt,
+	)
+
+	if err != nil {
+		return nil, err
 	}
 
 	return &s, nil
