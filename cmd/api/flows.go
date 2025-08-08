@@ -16,20 +16,26 @@ func (app *application) postSessionFlowHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	var input struct {
-		StateID int64  `json:"state_id"`
+		StateID int64  `json:"stateId"`
 		Comment string `json:"comment"`
 	}
 
 	app.readJSON(w, r, &input)
 
 	flow := &data.Flow{
-		SessionID: s.ID,
-		StateID:   input.StateID,
-		Comment:   input.Comment,
+		SessionID:       s.ID,
+		StateID:         input.StateID,
+		Comment:         input.Comment,
+		SessionPublicID: s.PublicID,
 	}
 
 	currentFlow, err := app.models.Flows.GetCurrentState(flow.SessionID)
-	app.handleErrToNotFound(w, r, err)
+	if err != nil {
+		app.handleErrToNotFound(w, r, err)
+		return
+	}
+
+	currentFlow.SessionPublicID = s.PublicID
 
 	if currentFlow.Equals(flow) {
 		err = app.writeJSON(w, http.StatusCreated, envelope{"flow": currentFlow}, nil)
