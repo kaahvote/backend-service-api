@@ -106,6 +106,17 @@ func (app *application) updateSessionHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	state, err := app.models.Flows.GetCurrentFlow(session.ID)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	if ok, err := state.AllowSessionUpdate(); !ok {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
 	var input struct {
 		Name               *string        `json:"name"`
 		VotingPolicyID     *int64         `json:"votingPolicyId"`
