@@ -46,9 +46,31 @@ func (m FlowModel) GetCurrentFlow(sessionID int64) (*FlowDetail, error) {
 	return &f, nil
 }
 
+func (f *FlowDetail) IsInAdvancedVotingState() bool {
+	return f.StateDetail.ID > 2
+}
+
+func (f *FlowDetail) IsFlowBackwarding(newStateId int64) bool {
+	return f.StateDetail.ID > newStateId
+}
+
+func (f *FlowDetail) ShouldVotesBeDeleted(newStateId int64) bool {
+	deleteVoteStates := []int64{SESSION_IN_DRAFT, SESSION_WAITING_CANDIDATES_OR_OPTIONS}
+
+	if f.IsInAdvancedVotingState() {
+		for _, v := range deleteVoteStates {
+			if v == newStateId {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 func (f *FlowDetail) AllowSessionUpdate() (bool, error) {
 
-	if f.StateDetail.ID > 2 {
+	if f.IsInAdvancedVotingState() {
 		return false, ErrSessionUpdateNotAllowed
 	}
 
