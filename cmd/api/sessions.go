@@ -12,11 +12,25 @@ import (
 
 func (app *application) getSessionHandler(w http.ResponseWriter, r *http.Request) {
 
-	session, err := app.getSession(r)
-	if err != nil {
-		app.handleErrToNotFound(w, r, err)
+	sessionPublicId := app.readStringParam(r, "session_public_id")
+	if sessionPublicId == "" {
+		app.notFoundResponse(w, r)
 		return
 	}
+
+	session, err := app.models.Sessions.GetFullDetail(sessionPublicId)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	state, err := app.models.Flows.GetCurrentFlow(session.ID)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	session.CurrentFlow = *state
 
 	err = app.writeJSON(w, http.StatusOK, envelope{"session": session}, nil)
 	if err != nil {
