@@ -12,14 +12,14 @@ type Flow struct {
 	SessionID       int64     `json:"-"`
 	SessionPublicID string    `json:"sessionId"`
 	StateID         int64     `json:"stateId"`
-	StateName       string    `json:"stateName"`
-	Comment         string    `json:"comment"`
+	StateName       string    `json:"stateName,omitzero"`
+	Comment         string    `json:"comment,omitzero"`
 	CreatedAt       time.Time `json:"createdAt"`
 }
 
 type FlowDetail struct {
 	ID          int64     `json:"id"`
-	Comment     string    `json:"comment"`
+	Comment     string    `json:"comment,omitzero"`
 	CreatedAt   time.Time `json:"createdAt"`
 	StateDetail State     `json:"stateDetail"`
 }
@@ -75,10 +75,15 @@ func (m FlowModel) GetCurrentState(sessionID int64) (*Flow, error) {
 	defer cancel()
 
 	var f Flow
-	err := m.DB.QueryRowContext(ctx, query, sessionID).Scan(&f.ID, &f.SessionID, &f.StateID, &f.Comment, &f.CreatedAt)
+	var comment sql.NullString
+	err := m.DB.QueryRowContext(ctx, query, sessionID).Scan(&f.ID, &f.SessionID, &f.StateID, &comment, &f.CreatedAt)
 
 	if err != nil {
 		return nil, err
+	}
+
+	if comment.Valid {
+		f.Comment = comment.String
 	}
 
 	return &f, nil
