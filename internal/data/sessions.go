@@ -26,6 +26,7 @@ type Session struct {
 type SessionFullDetail struct {
 	Session
 	VotingPolicy VotingPolicy `json:"votingPolicy"`
+	VoterPolicy  VoterPolicy  `json:"voterPolicy"`
 }
 
 func ValidateSession(v *validator.Validator, s *Session) {
@@ -81,11 +82,13 @@ func (m SessionModel) Get(publicId string) (*Session, error) {
 
 func (m SessionModel) GetFullDetail(publicId string) (*SessionFullDetail, error) {
 	query := `SELECT 
-				s.id, s.name, s.public_id, s.voters_policy_id, s.candidate_policy_id,
-				vp.id, vp.name, vp.created_at, s.created_by, s.created_at
+				s.id, s.name, s.public_id, s.candidate_policy_id,
+				vp.id, vp.name, vp.created_at, v.id, v.name, v.created_at, 
+				s.created_by, s.created_at
 			FROM
 				sessions s
 			INNER JOIN voting_policies vp ON vp.id = s.voting_policy_id
+			INNER JOIN voter_policies v ON v.id = s.voters_policy_id
 			WHERE s.public_id = $1
 			ORDER BY s.ID ASC`
 
@@ -98,11 +101,16 @@ func (m SessionModel) GetFullDetail(publicId string) (*SessionFullDetail, error)
 		&s.ID,
 		&s.Name,
 		&s.PublicID,
-		&s.VotersPolicyID,
 		&s.CandidatesPolicyID,
+
 		&s.VotingPolicy.ID,
 		&s.VotingPolicy.Name,
 		&s.VotingPolicy.CreatedAt,
+
+		&s.VoterPolicy.ID,
+		&s.VoterPolicy.Name,
+		&s.VoterPolicy.CreatedAt,
+
 		&s.CreatedBy,
 		&s.CreatedAt,
 	)
