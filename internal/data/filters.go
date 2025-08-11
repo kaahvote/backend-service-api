@@ -38,6 +38,13 @@ type SessionFilters struct {
 	Filters
 }
 
+type SettingsFilters struct {
+	Name          string
+	CreatedAtFrom *string
+	CreatedAtTo   *string
+	Filters
+}
+
 func calculateMetadata(totalRecords, page, pageSize int) Metadata {
 	if totalRecords == 0 {
 		return Metadata{}

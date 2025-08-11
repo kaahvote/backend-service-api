@@ -12,16 +12,9 @@ type Flow struct {
 	SessionID       int64     `json:"-"`
 	SessionPublicID string    `json:"sessionId"`
 	StateID         int64     `json:"stateId"`
-	StateName       string    `json:"stateName"`
-	Comment         string    `json:"comment"`
+	StateName       string    `json:"stateName,omitzero"`
+	Comment         string    `json:"comment,omitzero"`
 	CreatedAt       time.Time `json:"createdAt"`
-}
-
-type FlowDetail struct {
-	ID          int64     `json:"id"`
-	Comment     string    `json:"comment"`
-	CreatedAt   time.Time `json:"createdAt"`
-	StateDetail State     `json:"stateDetail"`
 }
 
 func (f Flow) Equals(flow *Flow) bool {
@@ -75,30 +68,8 @@ func (m FlowModel) GetCurrentState(sessionID int64) (*Flow, error) {
 	defer cancel()
 
 	var f Flow
-	err := m.DB.QueryRowContext(ctx, query, sessionID).Scan(&f.ID, &f.SessionID, &f.StateID, &f.Comment, &f.CreatedAt)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &f, nil
-}
-
-func (m FlowModel) GetCurrentFlow(sessionID int64) (*FlowDetail, error) {
-	query := `SELECT
-	  			f.id, s.id, s.name, f.comment, f.created_at
-			  FROM flows f
-			  INNER JOIN session_states s ON s.id = f.state_id
-			  WHERE f.session_id = $1
-			  ORDER BY created_at DESC
-			  LIMIT 1`
-
-	ctx, cancel := context.WithTimeout(context.Background(), THREE_SECONDS)
-	defer cancel()
-
-	var f FlowDetail
 	var comment sql.NullString
-	err := m.DB.QueryRowContext(ctx, query, sessionID).Scan(&f.ID, &f.StateDetail.ID, &f.StateDetail.Name, &comment, &f.CreatedAt)
+	err := m.DB.QueryRowContext(ctx, query, sessionID).Scan(&f.ID, &f.SessionID, &f.StateID, &comment, &f.CreatedAt)
 
 	if err != nil {
 		return nil, err
@@ -109,7 +80,6 @@ func (m FlowModel) GetCurrentFlow(sessionID int64) (*FlowDetail, error) {
 	}
 
 	return &f, nil
-
 }
 
 func (m FlowModel) GetFullHistory(filters FlowFilters) ([]*Flow, Metadata, error) {
