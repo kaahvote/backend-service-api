@@ -25,6 +25,12 @@ func (app *application) routes() http.Handler {
 
 	routes.HandlerFunc(http.MethodGet, "/v1/users/:user_public_id/sessions", app.getUserSessionsHandler)
 
+	// Candidates
+	routes.HandlerFunc(http.MethodGet, "/v1/sessions/:session_public_id/candidates", app.getSessionCandidatesHandler)
+	routes.HandlerFunc(http.MethodGet, "/v1/sessions/:session_public_id/candidates/:candidate_id", app.getSingleCandidatesHandler)
+	routes.HandlerFunc(http.MethodPost, "/v1/sessions/:session_public_id/candidates", app.postSessionCandidatesHandler)
+	routes.HandlerFunc(http.MethodDelete, "/v1/sessions/:session_public_id/candidates/:candidate_id", app.deleteSessionCandidateHandler)
+
 	// Settings
 	routes.HandlerFunc(http.MethodGet, "/v1/voting-policies", app.getVotingPoliciesHandler)
 	routes.HandlerFunc(http.MethodGet, "/v1/voter-policies", app.getVoterPoliciesHandler)

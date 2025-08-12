@@ -17,6 +17,7 @@ type Models struct {
 	VoterPolicy     VoterPolicyModel
 	CandidatePolicy CandidatePolicyModel
 	State           StateModel
+	Candidate       CandidateModel
 }
 
 func NewModels(db *sql.DB) Models {
@@ -28,5 +29,6 @@ func NewModels(db *sql.DB) Models {
 		VoterPolicy:     VoterPolicyModel{DB: db},
 		CandidatePolicy: CandidatePolicyModel{DB: db},
 		State:           StateModel{DB: db},
+		Candidate:       CandidateModel{DB: db},
 	}
 }
